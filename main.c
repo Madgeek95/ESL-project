@@ -61,13 +61,32 @@ int main(void)
     /* Configure board. */
     bsp_board_init(BSP_INIT_LEDS);
 
+    int blink_counts[LEDS_NUMBER] = {6, 4, 0, 5};
+
     /* Toggle LEDs. */
     while (true)
     {
-        for (int i = 0; i < LEDS_NUMBER; i++)
+       for (int i = 0; i < LEDS_NUMBER; i++)
         {
-            bsp_board_led_invert(i);
-            nrf_delay_ms(500);
+            int count = blink_counts[i];
+
+            // Если количество миганий больше 0
+            if (count > 0)
+            {
+                for (int j = 0; j < count; j++)
+                {
+                    // Включаем светодиод
+                    bsp_board_led_on(i);
+                    nrf_delay_ms(300);
+                    
+                    // Выключаем светодиод
+                    bsp_board_led_off(i);
+                    nrf_delay_ms(300);
+                }
+
+                // Пауза между разными светодиодами
+                nrf_delay_ms(1000);
+            }
         }
     }
 }
