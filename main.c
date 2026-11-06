@@ -52,6 +52,7 @@
 #include <stdint.h>
 #include "nrf_delay.h"
 #include "boards.h"
+#include "pca10059.h"
 
 /**
  * @brief Function for application main entry.
