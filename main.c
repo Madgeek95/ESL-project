@@ -51,42 +51,62 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "nrf_delay.h"
-#include "boards.h"
+#include "nrf_gpio.h"
 
-/**
- * @brief Function for application main entry.
- */
+// Прямое определение пинов для nRF52840 Dongle (PCA10059) без сторонних заголовочных файлов
+// Порт 0: пины 0-31. Порт 1: пины 32-63 (32 + номер пина)
+#define BUTTON_1       38   // Port 1, Pin 6 (32 + 6)
+#define LED2_R         8    // Port 0, Pin 8
+#define LED2_G         41   // Port 1, Pin 9 (32 + 9)
+#define LED2_B         12   // Port 0, Pin 12
+
 int main(void)
 {
-    /* Configure board. */
-    bsp_board_init(BSP_INIT_LEDS);
+    // 1. Настраиваем кнопку как вход с подтяжкой к питанию
+    nrf_gpio_cfg_input(BUTTON_1, NRF_GPIO_PIN_PULLUP);
 
-    int blink_counts[LEDS_NUMBER] = {6, 4, 0, 5};
+    // 2. Настраиваем пины светодиодов как выходы
+    nrf_gpio_cfg_output(LED2_R);
+    nrf_gpio_cfg_output(LED2_G);
+    nrf_gpio_cfg_output(LED2_B);
 
-    /* Toggle LEDs. */
-    while (true)
+    // Выключаем все светодиоды на старте (1 = выкл)
+    nrf_gpio_pin_write(LED2_R, 1);
+    nrf_gpio_pin_write(LED2_G, 1);
+    nrf_gpio_pin_write(LED2_B, 1);
+
+    int step = 0;
+
+    while (true) 
     {
-       for (int i = 0; i < LEDS_NUMBER; i++)
+        // Проверяем, нажата ли кнопка (активный уровень 0)
+        bool button_pressed = (nrf_gpio_pin_read(BUTTON_1) == 0);
+
+        if (button_pressed)
         {
-            int count = blink_counts[i];
-
-            // Если количество миганий больше 0
-            if (count > 0)
-            {
-                for (int j = 0; j < count; j++)
-                {
-                    // Включаем светодиод
-                    bsp_board_led_on(i);
-                    nrf_delay_ms(300);
-                    
-                    // Выключаем светодиод
-                    bsp_board_led_off(i);
-                    nrf_delay_ms(300);
-                }
-
-                // Пауза между разными светодиодами
-                nrf_delay_ms(1000);
+            if (step == 0) {
+                nrf_gpio_pin_write(LED2_R, 0);   
+                nrf_delay_ms(300);
+                nrf_gpio_pin_write(LED2_R, 1);   
+            } 
+            else if (step == 1) {
+                nrf_gpio_pin_write(LED2_G, 0); 
+                nrf_delay_ms(300);
+                nrf_gpio_pin_write(LED2_G, 1); 
+            } 
+            else if (step == 2) {
+                nrf_gpio_pin_write(LED2_B, 0);  
+                nrf_delay_ms(300);
+                nrf_gpio_pin_write(LED2_B, 1);  
             }
+
+            nrf_delay_ms(200); 
+
+            step = (step + 1) % 3;
+        }
+        else 
+        {
+            nrf_delay_ms(50);
         }
     }
 }
