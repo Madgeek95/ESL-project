@@ -140,7 +140,7 @@ $(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
 	@echo Creating DFU package: $(DFU_PACKAGE)
 	nrfutil pkg generate \
 	   --hw-version 52 \
-	   --application-version 1 \
+	   --application-version 20 \
 	   --sd-req 0x0 \
 	   --application $< \
 	   $@
