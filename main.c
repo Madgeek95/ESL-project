@@ -47,66 +47,51 @@
  * This file contains the source code for a sample application to blink LEDs.
  *
  */
-
-#include <stdbool.h>
-#include <stdint.h>
+#include "gpio_hal.h"
 #include "nrf_delay.h"
-#include "nrf_gpio.h"
 
-// Прямое определение пинов для nRF52840 Dongle (PCA10059) без сторонних заголовочных файлов
-// Порт 0: пины 0-31. Порт 1: пины 32-63 (32 + номер пина)
-#define BUTTON_1       38   // Port 1, Pin 6 (32 + 6)
-#define LED2_R         8    // Port 0, Pin 8
-#define LED2_G         41   // Port 1, Pin 9 (32 + 9)
-#define LED2_B         12   // Port 0, Pin 12
+// Заданная последовательность: RRGGGB
+static const led_color_t sequence[] = {
+    COLOR_RED,
+    COLOR_RED,
+    COLOR_GREEN,
+    COLOR_GREEN,
+    COLOR_GREEN,
+    COLOR_BLUE
+};
+
+#define SEQUENCE_LENGTH (sizeof(sequence) / sizeof(sequence[0]))
 
 int main(void)
 {
-    // 1. Настраиваем кнопку как вход с подтяжкой к питанию
-    nrf_gpio_cfg_input(BUTTON_1, NRF_GPIO_PIN_PULLUP);
+    gpio_hal_init();
 
-    // 2. Настраиваем пины светодиодов как выходы
-    nrf_gpio_cfg_output(LED2_R);
-    nrf_gpio_cfg_output(LED2_G);
-    nrf_gpio_cfg_output(LED2_B);
+    static size_t current_index = 0;
+    static led_color_t active_color = COLOR_RED;
 
-    // Выключаем все светодиоды на старте (1 = выкл)
-    nrf_gpio_pin_write(LED2_R, 1);
-    nrf_gpio_pin_write(LED2_G, 1);
-    nrf_gpio_pin_write(LED2_B, 1);
+    gpio_hal_set_led(active_color);
 
-    int step = 0;
-
-    while (true) 
+    while (true)
     {
-        // Проверяем, нажата ли кнопка (активный уровень 0)
-        bool button_pressed = (nrf_gpio_pin_read(BUTTON_1) == 0);
-
-        if (button_pressed)
+        if (gpio_hal_is_button_pressed())
         {
-            if (step == 0) {
-                nrf_gpio_pin_write(LED2_R, 0);   
-                nrf_delay_ms(300);
-                nrf_gpio_pin_write(LED2_R, 1);   
-            } 
-            else if (step == 1) {
-                nrf_gpio_pin_write(LED2_G, 0); 
-                nrf_delay_ms(300);
-                nrf_gpio_pin_write(LED2_G, 1); 
-            } 
-            else if (step == 2) {
-                nrf_gpio_pin_write(LED2_B, 0);  
-                nrf_delay_ms(300);
-                nrf_gpio_pin_write(LED2_B, 1);  
-            }
+            // Берем следующий шаг последовательности
+            active_color = sequence[current_index];
+            gpio_hal_set_led(active_color);
 
-            nrf_delay_ms(200); 
+            // Длительность отображения шага
+            nrf_delay_ms(300);
 
-            step = (step + 1) % 3;
+            // Переход к следующему элементу
+            current_index = (current_index + 1) % SEQUENCE_LENGTH;
+
+            nrf_delay_ms(100);
         }
-        else 
+        else
         {
-            nrf_delay_ms(50);
+            // Кнопка отпущена — светодиод продолжает гореть последним цветом (пауза)
+            gpio_hal_set_led(active_color);
+            nrf_delay_ms(20);
         }
     }
 }

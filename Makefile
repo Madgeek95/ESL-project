@@ -3,6 +3,7 @@ TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := _build
 DFU_PACKAGE      := $(OUTPUT_DIRECTORY)/nrf52840_xxaa.dfu
 DFU_PORT         ?= /dev/ttyACM0
+DFU_CONNECT_DELAY ?= 0
 
 
 SDK_ROOT := /home/user/devel/esl-nsdk
@@ -30,6 +31,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
   $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
   $(PROJ_DIR)/main.c \
+  $(PROJ_DIR)/gpio_hal.c \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
 
 # Include folders common to all targets
@@ -132,19 +134,19 @@ include $(TEMPLATE_PATH)/Makefile.common
 
 $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
-.PHONY: dfu
+.PHONY: dfu dfu_package
 
 dfu_package: $(DFU_PACKAGE)
 
-$(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
+$(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex nrf52840_xxaa
 	@echo Creating DFU package: $(DFU_PACKAGE)
 	nrfutil pkg generate \
 	   --hw-version 52 \
-	   --application-version 20 \
+	   --application-version 31 \
 	   --sd-req 0x0 \
 	   --application $< \
 	   $@
 
 dfu: $(DFU_PACKAGE)
 	@echo Performing DFU with generated package
-	nrfutil dfu usb-serial -pkg $< -p $(DFU_PORT) -b 115200
+	nrfutil dfu usb-serial -pkg $< -p $(DFU_PORT) -cd $(DFU_CONNECT_DELAY) -b 115200
