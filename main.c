@@ -49,6 +49,7 @@
  */
 #include "gpio_hal.h"
 #include "nrf_delay.h"
+#include <stddef.h>
 
 // Заданная последовательность: RRGGGB
 static const led_color_t sequence[] = {
@@ -61,37 +62,42 @@ static const led_color_t sequence[] = {
 };
 
 #define SEQUENCE_LENGTH (sizeof(sequence) / sizeof(sequence[0]))
+#define LED_STEP_DURATION_MS 1000U
+#define BUTTON_POLL_INTERVAL_MS 10U
 
 int main(void)
 {
     gpio_hal_init();
 
     static size_t current_index = 0;
-    static led_color_t active_color = COLOR_RED;
-
-    gpio_hal_set_led(active_color);
+    static led_color_t active_color = COLOR_OFF;
+    static uint16_t elapsed_ms = 0;
 
     while (true)
     {
         if (gpio_hal_is_button_pressed())
         {
-            // Берем следующий шаг последовательности
-            active_color = sequence[current_index];
-            gpio_hal_set_led(active_color);
+            if (active_color == COLOR_OFF)
+            {
+                active_color = sequence[current_index];
+                current_index = (current_index + 1) % SEQUENCE_LENGTH;
+                gpio_hal_set_led(active_color);
+            }
 
-            // Длительность отображения шага
-            nrf_delay_ms(300);
+            nrf_delay_ms(BUTTON_POLL_INTERVAL_MS);
+            elapsed_ms += BUTTON_POLL_INTERVAL_MS;
 
-            // Переход к следующему элементу
-            current_index = (current_index + 1) % SEQUENCE_LENGTH;
-
-            nrf_delay_ms(100);
+            if (elapsed_ms >= LED_STEP_DURATION_MS)
+            {
+                elapsed_ms = 0;
+                active_color = sequence[current_index];
+                current_index = (current_index + 1) % SEQUENCE_LENGTH;
+                gpio_hal_set_led(active_color);
+            }
         }
         else
         {
-            // Кнопка отпущена — светодиод продолжает гореть последним цветом (пауза)
-            gpio_hal_set_led(active_color);
-            nrf_delay_ms(20);
+            nrf_delay_ms(BUTTON_POLL_INTERVAL_MS);
         }
     }
 }

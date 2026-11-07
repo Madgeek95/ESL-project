@@ -3,7 +3,6 @@ TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := _build
 DFU_PACKAGE      := $(OUTPUT_DIRECTORY)/nrf52840_xxaa.dfu
 DFU_PORT         ?= /dev/ttyACM0
-DFU_CONNECT_DELAY ?= 0
 
 
 SDK_ROOT := /home/user/devel/esl-nsdk
@@ -69,7 +68,6 @@ OPT = -O3 -g3
 # C flags common to all targets
 CFLAGS += $(OPT)
 CFLAGS += -DBOARD_PCA10059
-CFLAGS += -DBSP_DEFINES_ONLY
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DMBR_PRESENT
@@ -90,7 +88,6 @@ ASMFLAGS += -mcpu=cortex-m4
 ASMFLAGS += -mthumb -mabi=aapcs
 ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 ASMFLAGS += -DBOARD_PCA10059
-ASMFLAGS += -DBSP_DEFINES_ONLY
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
 ASMFLAGS += -DFLOAT_ABI_HARD
 ASMFLAGS += -DMBR_PRESENT
@@ -134,19 +131,20 @@ include $(TEMPLATE_PATH)/Makefile.common
 
 $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
-.PHONY: dfu dfu_package
+.PHONY: dfu
 
 dfu_package: $(DFU_PACKAGE)
 
-$(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex nrf52840_xxaa
+$(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
 	@echo Creating DFU package: $(DFU_PACKAGE)
 	nrfutil pkg generate \
 	   --hw-version 52 \
-	   --application-version 31 \
-	   --sd-req 0x0 \
+	   --application-version 2 \
+	   --sd-req 0x0,0x102 \
+	   --sd-id 0x102 \
 	   --application $< \
-	   $@
+	   --softdevice $(SDK_ROOT)/components/softdevice/s113/hex/s113_nrf52_7.2.0_softdevice.hex $@
 
 dfu: $(DFU_PACKAGE)
 	@echo Performing DFU with generated package
-	nrfutil dfu usb-serial -pkg $< -p $(DFU_PORT) -cd $(DFU_CONNECT_DELAY) -b 115200
+	nrfutil dfu usb-serial -pkg $< -p $(DFU_PORT) -b 115200
